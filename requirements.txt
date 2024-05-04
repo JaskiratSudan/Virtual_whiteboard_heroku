@@ -1,7 +1,7 @@
 cvzone==1.6.1
 Flask==3.0.3
 imutils==0.5.4
-numpy==1.21.5
+numpy
 opencv_contrib_python==4.9.0.80
 opencv_python==4.9.0.80
 mediapipe==0.10.13
