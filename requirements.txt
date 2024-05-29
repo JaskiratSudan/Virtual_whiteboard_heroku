@@ -4,3 +4,4 @@ numpy
 opencv_contrib_python==4.9.0.80
 opencv_python==4.9.0.80
 mediapipe==0.10.13
+waitress==3.0.0
