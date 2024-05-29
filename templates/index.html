@@ -4,9 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Virtual Whiteboard</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Prevents scrolling */
+        }
+        h1 {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            padding: 10px;
+            margin: 0;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1; /* Make the container take up available space */
+            margin-top: 60px; /* Adjusted margin to account for the fixed header */
+            padding: 10px;
+        }
+        img {
+            width: 100%;
+            max-width: 1000px;
+            max-height: calc(100vh - 120px); /* Adjust to fit within the viewport height with space for header and footer */
+            border: 2px solid #333;
+            border-radius: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            object-fit: contain; /* Ensure the image scales properly within the container */
+        }
+        footer {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 -4px 8px rgb(0, 0, 0);
+            position: fixed;
+            bottom: 0;
+        }
+
+        /* Responsive styles */
+        @media only screen and (max-width: 600px) {
+            h1 {
+                font-size: 20px;
+            }
+            img {
+                width: 90%; /* Adjusted width for smaller screens */
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <h1>Virtual Whiteboard</h1>
-    <img src="{{ url_for('video_feed') }}" alt="Camera Feed">
+    <div class="container">
+        <img src="{{ url_for('video_feed') }}" alt="Camera Feed">
+    </div>
+    <footer>
+        Project by Jaskirat Singh Sudan
+    </footer>
 </body>
 </html>
