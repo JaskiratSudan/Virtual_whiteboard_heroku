@@ -3,6 +3,7 @@ import numpy as np
 import mediapipe as mp
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
+import time
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -12,6 +13,8 @@ class HandDrawingTransformer(VideoTransformerBase):
         self.hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.8, min_tracking_confidence=0.8)
         self.imgcanvas = None
         self.xp, self.yp = 0, 0
+        self.prev_time = 0
+        self.curr_time = 0
 
     def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
@@ -59,6 +62,12 @@ class HandDrawingTransformer(VideoTransformerBase):
         img = cv2.bitwise_and(img, imgInv)
         img = cv2.bitwise_or(img, self.imgcanvas)
 
+        self.curr_time = time.time()
+        fps = 1 / (self.curr_time - self.prev_time)
+        self.prev_time = self.curr_time
+
+        cv2.putText(img, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
         return img
 
 st.title("Virtual Whiteboard")
@@ -66,5 +75,3 @@ st.write("Project by Jaskirat Singh Sudan")
 
 rtc_config = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
 webrtc_streamer(key="example", rtc_configuration=rtc_config, video_transformer_factory=HandDrawingTransformer)
-
-st.write("This app uses Mediapipe and OpenCV to create a virtual whiteboard.")
