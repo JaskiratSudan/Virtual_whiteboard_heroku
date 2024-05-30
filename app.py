@@ -1,48 +1,27 @@
-from flask import Flask, render_template, Response
 import cv2
 import numpy as np
 import mediapipe as mp
-import time
-
-app = Flask(__name__)
+import streamlit as st
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 
-def detect_working_camera():
-    num_cameras = 10  # Maximum number of cameras to check
+class HandDrawingTransformer(VideoTransformerBase):
+    def __init__(self):
+        self.hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.8, min_tracking_confidence=0.8)
+        self.imgcanvas = None
+        self.xp, self.yp = 0, 0
 
-    for i in range(num_cameras):
-        cap = cv2.VideoCapture(i)
-        if cap.isOpened():
-            cap.release()
-            return i
-
-    return None
-
-working_camera_index = detect_working_camera()
-if working_camera_index is None:
-    raise RuntimeError("No working camera found.")
-
-def generate_frames():
-    resolution = (640, 480)
-    cap = cv2.VideoCapture(working_camera_index)
-    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-    cap.set(3, resolution[0])
-    cap.set(4, resolution[1])
-
-    hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.8, min_tracking_confidence=0.8)
-    
-    imgcanvas = np.zeros((resolution[1], resolution[0], 3), np.uint8)
-    xp, yp = 0, 0
-
-    prev_time = time.time()
-
-    while True:
-        success, img = cap.read()
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
         img = cv2.flip(img, 1)
+
+        if self.imgcanvas is None:
+            self.imgcanvas = np.zeros_like(img)
+
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        results = hands.process(img_rgb)
+        results = self.hands.process(img_rgb)
 
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
@@ -58,45 +37,34 @@ def generate_frames():
                         fingers.append(0)
 
                 if fingers[0] == 1 and fingers[1] == 0:
-                    if xp == 0 and yp == 0:
-                        xp, yp = point_index
+                    if self.xp == 0 and self.yp == 0:
+                        self.xp, self.yp = point_index
                     cv2.circle(img, point_index, 10, (0, 0, 255), cv2.FILLED)
-                    cv2.line(imgcanvas, (xp, yp), point_index, (255, 0, 0), 10)
-                    xp, yp = point_index
+                    cv2.line(self.imgcanvas, (self.xp, self.yp), point_index, (255, 0, 0), 10)
+                    self.xp, self.yp = point_index
 
                 if fingers[0] == 1 and fingers[1] == 1:
-                    xp, yp = 0, 0
+                    self.xp, self.yp = 0, 0
                     cv2.rectangle(img, point_index, point_middle, (255, 255, 255), cv2.FILLED)
-                    cv2.rectangle(imgcanvas, point_index, point_middle, (0, 0, 0), 20, cv2.FILLED)
+                    cv2.rectangle(self.imgcanvas, point_index, point_middle, (0, 0, 0), 20, cv2.FILLED)
 
                 if fingers[0] == 0 and fingers[1] == 0:
-                    xp, yp = 0, 0
+                    self.xp, self.yp = 0, 0
 
                 mp_drawing.draw_landmarks(img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-        imgGray = cv2.cvtColor(imgcanvas, cv2.COLOR_BGR2GRAY)
+        imgGray = cv2.cvtColor(self.imgcanvas, cv2.COLOR_BGR2GRAY)
         _, imgInv = cv2.threshold(imgGray, 20, 255, cv2.THRESH_BINARY_INV)
         imgInv = cv2.cvtColor(imgInv, cv2.COLOR_GRAY2BGR)
         img = cv2.bitwise_and(img, imgInv)
-        img = cv2.bitwise_or(img, imgcanvas)
+        img = cv2.bitwise_or(img, self.imgcanvas)
 
-        current_time = time.time()
-        fps = 1 / (current_time - prev_time)
-        prev_time = current_time
+        return img
 
-        cv2.putText(img, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+st.title("Virtual Whiteboard")
+st.write("Project by Jaskirat Singh Sudan")
 
-        ret, buffer = cv2.imencode('.jpg', img)
-        frame = buffer.tobytes()
-        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+rtc_config = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+webrtc_streamer(key="example", rtc_configuration=rtc_config, video_transformer_factory=HandDrawingTransformer)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-if __name__ == '__main__':
-    app.run(debug=True)
+st.write("This app uses Mediapipe and OpenCV to create a virtual whiteboard.")
