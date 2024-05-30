@@ -9,9 +9,24 @@ app = Flask(__name__)
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 
+def detect_working_camera():
+    num_cameras = 10  # Maximum number of cameras to check
+
+    for i in range(num_cameras):
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
+            cap.release()
+            return i
+
+    return None
+
+working_camera_index = detect_working_camera()
+if working_camera_index is None:
+    raise RuntimeError("No working camera found.")
+
 def generate_frames():
     resolution = (640, 480)
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(working_camera_index)
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
     cap.set(3, resolution[0])
     cap.set(4, resolution[1])
@@ -84,4 +99,4 @@ def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run(debug=False,host='0.0.0.0')
+    app.run(debug=True)
