@@ -1,6 +1,6 @@
 imutils==0.5.4
 numpy
-opencv-contrib-python-headless==4.9.0.80  # Using headless version to avoid GUI dependencies
+opencv-contrib-python-headless # Using headless version to avoid GUI dependencies
 mediapipe==0.10.13
 waitress==3.0.0
 streamlit==1.12.0
